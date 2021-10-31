@@ -9,3 +9,5 @@ backup_mysql_gpg_keys: []
 
 backup_mysql_user: root
 backup_mysql_password: false
+
+backup_mysql_influxevent: false
