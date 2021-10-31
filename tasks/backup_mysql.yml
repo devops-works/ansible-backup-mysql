@@ -13,7 +13,7 @@
 
 - name: Ensure gpg is installed
   apt:
-    pkg: gpg
+    pkg: "{{ __backup_mysql_gpg_pkg }}"
     state: present
 
 - name: Import public gpg keys
