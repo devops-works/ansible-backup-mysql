@@ -41,6 +41,9 @@ storage**.
 
 ## Object storage
 
+Buckets must be set in `backup_mysql_s3bucket` or `backup_mysql_gcloudbucket`
+if you want to offload backups to object storage.
+
 This role expects objects storage to be already setup if you intend to use it.
 `s3cmd` and `gsutil` are used respectively for AWS S3 and GCS.
 
