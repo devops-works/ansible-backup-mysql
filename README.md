@@ -22,14 +22,14 @@ Optionally copies backups to object storage (S3 or GCS).
   local backups in
 - `backup_mysql_cron_time` (default: "15 */2 * * 0-7"): cron entry for
   backups
-- `backup_mysql_gpg_keys_urls` (default: []): list of gpg keys URLS to
+- `backup_mysql_gpg_keys` (default: []): list of gpg keys URLS to
   encrypt backups for
 - `backup_mysql_user`: backup user
 - `backup_mysql_password`: backup password
 
 ## Encryption
 
-If `backup_mysql_gpg_keys_urls` is populated with GPG keys URLs, backups will
+If `backup_mysql_gpg_keys` is populated with GPG keys URLs, backups will
 be encrypted for those keys. When no keys are provided, backup will not be
 encrypted.
 
@@ -38,6 +38,17 @@ storage**.
 
 If encryption is not used, **unencrypted backups will be pushed to object
 storage**.
+
+Each object in the `backup_mysql_gpg_keys` list must have an `id` and a `url`
+attribute:
+
+```
+mariadb_backup_gpg_keys:
+  - url: https://gitlab.com/alice.gpg
+    id: AAAA40FC29B8AAAA
+  - url: https://gitlab.com/bob.gpg
+    id: BBBBE221A5D7BBBB
+```
 
 ## Object storage
 

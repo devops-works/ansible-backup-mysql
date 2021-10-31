@@ -15,7 +15,7 @@ PASS="{{ backup_mysql_password }}"
 
 EXCLUDE="{{ backup_mysql_exclude }}"
 
-GPG_RCPT="{% for entry in backup_mysql_gpg_keys_urls %}--recipient {{ entry.id }} {% endfor %}"
+GPG_RCPT="{% for entry in backup_mysql_gpg_keys %}--recipient {{ entry.id }} {% endfor %}"
 
 if [ "x${EXCLUDE}" != "x" ]; then
   DB=$(mysql -NBe "SHOW DATABASES" --password="${PASS}" | grep -v "information_schema\|sys\|performance_schema" | grep -v "${EXCLUDE}")
@@ -37,7 +37,7 @@ for j in ${DB}; do
   fi
 
   # Encrypt backups
-  if [ {{ backup_mysql_gpg_keys_urls | length }} -gt 0 ]; then
+  if [ {{ backup_mysql_gpg_keys | length }} -gt 0 ]; then
     # Encrypt
     [[ $1 == '-v' ]] && echo -n "encrypting..." 
     gpg --encrypt ${GPG_RCPT} --trust-model always "${DEST}/$j-${DATE}.sql.zst" || errors=$((errors + 1)) 
