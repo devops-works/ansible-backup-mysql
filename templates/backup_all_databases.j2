@@ -17,7 +17,11 @@ EXCLUDE="{{ backup_mysql_exclude }}"
 
 GPG_RCPT="{% for entry in backup_mysql_gpg_keys %}--recipient {{ entry.id }} {% endfor %}"
 
-DB=$(echo "SHOW DATABASES;" | mysql --password="${PASS}" | tail -n +2 | grep -v information_schema | grep -v performance_schema | grep -v "${EXCLUDE}")
+if [ "x${EXCLUDE}" != "x" ]; then
+  DB=$(mysql -NBe "SHOW DATABASES" --password="${PASS}" | grep -v "information_schema\|sys\|performance_schema" | grep -v "${EXCLUDE}")
+else
+  DB=$(mysql -NBe "SHOW DATABASES" --password="${PASS}" | grep -v "information_schema\|sys\|performance_schema")
+fi
 
 errors=0
 
