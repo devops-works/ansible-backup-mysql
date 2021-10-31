@@ -11,6 +11,16 @@
     owner: root
     group: root
 
+- name: Sets gpg package name on ubuntu
+  set_fact:
+    __backup_mysql_gpg_pkg: gnupg
+    when: ansible_distribution == "Ubuntu"
+
+- name: Sets gpg package name on debian
+  set_fact:
+    __backup_mysql_gpg_pkg: gpg
+    when: ansible_distribution == "Debian"
+
 - name: Ensure gpg is installed
   apt:
     pkg: "{{ __backup_mysql_gpg_pkg }}"
