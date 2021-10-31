@@ -26,6 +26,11 @@
     pkg: "{{ __backup_mysql_gpg_pkg }}"
     state: present
 
+- name: Ensure zstd is installed
+  apt:
+    pkg: zstd 
+    state: present
+
 - name: Import public gpg keys
   shell: "curl -s {{ item.url }} | gpg --import --trust-model always -"
   args:
