@@ -1,0 +1,11 @@
+---
+backup_mysql_keep: 30
+backup_mysql_s3bucket: ""
+backup_mysql_gcloudbucket: ""
+backup_mysql_destination: /var/backups/mysql/
+backup_mysql_cron_time: "15 */2 * * 0-7"
+backup_mysql_exclude: ""
+backup_mysql_gpg_keys: []
+
+backup_mysql_user: root
+backup_mysql_password: false

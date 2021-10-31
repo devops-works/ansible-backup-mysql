@@ -1,0 +1,10 @@
+---
+- import_tasks: check_vars.yml
+  tags:
+    - backup
+    - check
+
+- import_tasks: backup_mysql.yml
+  tags:
+    - backup
+

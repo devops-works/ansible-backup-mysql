@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+#
+# {{ ansible_managed }}
+#
+
+# How many backups to keep locally
+KEEP={{ backup_mysql_keep }}
+
+DEST="{{ backup_mysql_destination }}"
+DEST_ENCRYPTED="{{ backup_mysql_destination }}/gpg"
+
+USER="{{ backup_mysql_user }}"
+PASS="{{ backup_mysql_password }}"
+
+EXCLUDE="{{ backup_mysql_exclude }}"
+
+GPG_RCPT="{% for entry in backup_mysql_gpg_keys %}--recipient {{ entry.id }} {% endfor %}"
+
+DB=$(echo "SHOW DATABASES;" | mysql --password="${PASS}" | tail -n +2 | grep -v information_schema | grep -v performance_schema | grep -v "${EXCLUDE}")
+
+errors=0
+
+for j in ${DB}; do
+  [[ $1 == '-v' ]] && echo -n "Database ${j}...backup..." 
+  DATE=$(date +%Y%m%d_%H%M%S)
+  mysqldump --password="${PASS}" --routines --triggers --single-transaction "${j}" 2> /tmp/error | zstd > "${DEST}/$j-${DATE}.sql.zst"
+  if [ $? != 0 ]; then
+    echo "Error backuping (mysqldump) ${j} :"
+    cat /tmp/error
+    echo
+    errors=$((errors + 1))
+  fi
+
+  # Encrypt backups
+  if [ {{ backup_mysql_gpg_keys | length }} -gt 0 ]; then
+    # Encrypt
+    [[ $1 == '-v' ]] && echo -n "encrypting..." 
+    gpg --encrypt ${GPG_RCPT} --trust-model always "${DEST}/$j-${DATE}.sql.zst" || errors=$((errors + 1)) 
+    mv "${DEST}/$j-${DATE}.sql.zst.gpg" ${DEST_ENCRYPTED}/ || errors=$((errors + 1)) 
+    # Remove old encrypted backups
+    # COUNT=$(( $(ls ${DEST_ENCRYPTED}/${j}-*.zst.gpg | wc -l) - ${KEEP} ))
+    COUNT=$(( `ls $DEST_ENCRYPTED/$j-*.gpg | wc -l` - $KEEP ))
+    if [ ${COUNT} -gt 0 ]; then
+      [[ $1 == '-v' ]] && echo -n "purging ${COUNT} encrypted..."
+      for i in `ls $DEST_ENCRYPTED/$j-*.gpg | head -$COUNT`; do
+        rm $i
+      done
+    fi
+  fi
+
+  # remove older backups for mysqldump
+  # COUNT=$(( $(ls ${DEST}/${j}-*.zst | wc -l) - ${KEEP} ))
+  COUNT=$(( `ls $DEST/$j-*.zst | wc -l` - $KEEP ))
+  if [ ${COUNT} -gt 0 ]; then
+      [[ $1 == '-v' ]] && echo -n "purging ${COUNT} clear..."
+    for i in `ls $DEST/$j-*.zst | head -$COUNT`; do
+      rm $i
+    done
+  fi
+
+  [[ $1 == '-v' ]] && echo "done"
+done
+
+SOURCE="${DEST}"
+# Only copy encrypted backups if we encrypt them
+if [ {{ backup_mysql_gpg_keys | length }} -gt 0 ]; then
+  SOURCE="${DEST_ENCRYPTED}"
+fi
+
+if [ -n "{{ backup_mysql_s3bucket }}" ]; then
+  [[ $1 == '-v' ]] && echo -n "syncing to s3://{{ backup_mysql_s3bucket }}..."
+  s3cmd sync ${SOURCE} s3://{{ backup_mysql_s3bucket }}/
+  if [ $? -gt 0 ]; then
+    echo -n "error syncing ${SOURCE} to s3://{{ backup_mysql_s3bucket }}/"
+    exit 1
+  fi
+  [[ $1 == '-v' ]] && echo "done"
+fi
+
+if [ -n "{{ backup_mysql_gcloudbucket }}" ]; then
+  [[ $1 == '-v' ]] && echo -n "syncing to gs://{{ backup_mysql_gcloudbucket }}..."
+  gsutil -m rsync -r ${SOURCE} gs://{{ backup_mysql_gcloudbucket }}/$(hostname)/
+  if [ $? -gt 0 ]; then
+    echo -n "error syncing ${SOURCE} to gs://{{ backup_mysql_gcloudbucket }}"
+    exit 1
+  fi
+  [[ $1 == '-v' ]] && echo "done"
+fi
+
+if [ $errors -gt 0 ]; then
+  echo "$errors errors occured"
+  exit 1
+fi
+
+exit 0

@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  author: devopsworks
+  description: mysql backup role
+  company: devopsworks
+  license: MIT
+  min_ansible_version: 1.8
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - all
+  galaxy_tags:
+    - database
+
+dependencies: []

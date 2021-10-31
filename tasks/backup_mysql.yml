@@ -1,0 +1,48 @@
+---
+##
+# MySQL DB dumping.
+#
+#
+- name: Installs backup script
+  template:
+    src: backup_all_databases.j2
+    dest: /usr/local/bin/database_backup
+    mode: 0700
+    owner: root
+    group: root
+
+- name: Ensure gpg is installed
+  apt:
+    pkg: gpg
+    state: present
+
+- name: Import public gpg keys
+  shell: "curl -s {{ item.url }} | gpg --import --trust-model always -"
+  args:
+    warn: no
+  changed_when: '"imported" in __backup_mysql_gpgkeys.stderr'
+  register: __backup_mysql_gpgkeys
+  loop: "{{ backup_mysql_gpg_keys }}"
+  tags: keys
+
+- name: Ensures backup destination exists
+  file:
+    path: "{{ backup_mysql_destination }}"
+    state: directory
+    mode: 0700
+    owner: root
+
+- name: Ensures encrypted backup destination exists
+  file:
+    path: "{{ backup_mysql_destination }}/gpg"
+    state: directory
+    mode: 0700
+    owner: root
+
+- name: Add cron entry
+  template:
+    src: cron.j2
+    dest: /etc/cron.d/database_backup
+    owner: root
+    group: root
+    mode: 0600
